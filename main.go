@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -12,30 +11,30 @@ type person struct {
 }
 
 func main() {
-	p1 := person{
-		First: "Jenny",
-	}
+	// p1 := person{
+	// 	First: "Jenny",
+	// }
 
-	p2 := person{
-		First: "James",
-	}
+	// p2 := person{
+	// 	First: "James",
+	// }
 
-	xp := []person{p1, p2}
-	bs, err := json.Marshal(xp)
-	if err != nil {
-		log.Panic(err)
-	}
+	// xp := []person{p1, p2}
+	// bs, err := json.Marshal(xp)
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
 
-	fmt.Println(string(bs))
+	// fmt.Println(string(bs))
 
-	xp2 := []person{}
-	err = json.Unmarshal(bs, &xp2)
+	// xp2 := []person{}
+	// err = json.Unmarshal(bs, &xp2)
 
-	if err != nil {
-		log.Panic(err)
-	}
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
 
-	fmt.Println("back into a go Data structure", xp2)
+	// fmt.Println("back into a go Data structure", xp2)
 
 	http.HandleFunc("/encode", foo)
 	http.HandleFunc("/decode", bar)
@@ -44,6 +43,14 @@ func main() {
 }
 
 func foo(w http.ResponseWriter, r *http.Request) {
+	p1 := person{
+		First: "Jenny",
+	}
+
+	err := json.NewEncoder(w).Encode(p1)
+	if err != nil {
+		log.Println("Encoded bad data", err)
+	}
 
 }
 
