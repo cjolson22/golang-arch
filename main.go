@@ -1,12 +1,12 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 func main() {
@@ -15,27 +15,49 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 }
 
-func getCode(msg string) string {
-	h := hmac.New(sha256.New, []byte("I love thursdays when it rains"))
-	h.Write([]byte(msg))
-	return fmt.Sprintf("%x", h.Sum(nil))
+func getJWT(msg string) (string, error) {
+	myKey := "I love thursdays when it rains"
+
+	type myClaims struct {
+		jwt.StandardClaims
+		Email string
+	}
+
+	claims := myClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+		},
+		Email: msg,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
+
+	ss, err := token.SignedString([]byte(myKey))
+	if err != nil {
+		return "", fmt.Errorf("couldn't SignedString in NewWithClaims %w", err)
+	}
+	return ss, nil
+	// 	h.Write([]byte(msg))
+	// 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 func bar(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	email := r.FormValue("email")
+	email := r.FormValue("emailThing")
 	if email == "" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	code := getCode(email)
-
+	ss, err := getJWT(email)
+	if err != nil {
+		http.Error(w, "Couldn get JWT", http.StatusInternalServerError)
+	}
 	c := http.Cookie{
 		Name:  "session",
-		Value: code + "|" + email,
+		Value: ss + "|" + email,
 	}
 
 	http.SetCookie(w, &c)
@@ -47,21 +69,12 @@ func foo(w http.ResponseWriter, r *http.Request) {
 		c = &http.Cookie{}
 	}
 
-	isEqual := true
-	xs := strings.SplitN(c.Value, "|", 2)
-	if len(xs) == 2 {
-		cCode := xs[0]
-		cEmail := xs[1]
+	//isEqual := true
 
-		code := getCode(cEmail)
-
-		isEqual = hmac.Equal([]byte(cCode), []byte(code))
-
-	}
-	message := "Not logged in"
-	if isEqual && len(c.Value) > 1 {
-		message = "Logged in"
-	}
+	// message := "Not logged in"
+	// if {
+	// 	message = "Logged in"
+	// }
 
 	html := `<!DOCTYPE html>
 	<html lang="en">
@@ -72,9 +85,9 @@ func foo(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 		<p>Cookie value: ` + c.Value + `</p>
-		<p>` + message + `</p>
+		<p>` + "message" + `</p>
 		<form action="/submit" method="post">
-			<input type="email" name="email"/>
+			<input type="emailThing" name="email"/>
 			<input type="submit" />
 
 		</form>
